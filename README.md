@@ -22,6 +22,11 @@ bash scripts/make_ppt_data.sh
 bash scripts/train.sh
 ```
 
+For this minimal reproduction on wikitext, you should see the following:
+1. The pre-pretrained model loss starts off higher, then catches up to no pre-pretraining by around 3k steps.
+2. After 3k steps, pre-pretraining is better.
+To reproduce our experiments, change `wikitext` to `allenai/c4` in the scripts above (download time will be slightly longer).
+
 This is how the repo is organized:
 - Formal language pre-pretraining data generation: `src/grammar.py`
 - Training: `train.py`
