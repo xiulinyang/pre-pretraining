@@ -16,7 +16,7 @@ import fire
 import glob
 
 from modeling_ppt_neox import PPTNeoXForCausalLM
-from utils import load_avg_activations
+from src.utils import load_avg_activations
 
 
 def id_estimate(X, fraction=0.9, verbose=False):

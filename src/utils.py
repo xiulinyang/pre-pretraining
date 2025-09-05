@@ -1,11 +1,29 @@
-import datasets
-from datasets import load_dataset, load_from_disk, Dataset
+
 from collections import defaultdict
 import os
-from transformers import AutoTokenizer
 import random
 import fire
+import torch
+import pickle
 from tqdm import tqdm, trange
+
+import datasets
+from datasets import load_dataset, load_from_disk, Dataset
+from transformers import AutoTokenizer
+
+
+def load_avg_activations(model, avg_activation_path, device):
+    """
+    Loads average activations from a pickle file and sets them on the model's modules.
+    Assumes each module has a set_avg_activation method.
+    """
+    with open(avg_activation_path, "rb") as f:
+        avg_activations = pickle.load(f)
+    for name, module in model.named_modules():
+        if name in avg_activations and hasattr(module, "set_avg_activation"):
+            module.set_avg_activation(
+                torch.tensor(avg_activations[name]).to(device)
+            )
 
 
 def load_text_files(file_dir):
