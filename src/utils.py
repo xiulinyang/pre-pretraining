@@ -1,14 +1,13 @@
-
-from collections import defaultdict
 import os
-import random
-import fire
-import torch
 import pickle
-from tqdm import tqdm, trange
+import random
+from collections import defaultdict
 
 import datasets
-from datasets import load_dataset, load_from_disk, Dataset
+import fire
+import torch
+from datasets import Dataset, load_dataset, load_from_disk
+from tqdm import tqdm, trange
 from transformers import AutoTokenizer
 
 
@@ -21,9 +20,7 @@ def load_avg_activations(model, avg_activation_path, device):
         avg_activations = pickle.load(f)
     for name, module in model.named_modules():
         if name in avg_activations and hasattr(module, "set_avg_activation"):
-            module.set_avg_activation(
-                torch.tensor(avg_activations[name]).to(device)
-            )
+            module.set_avg_activation(torch.tensor(avg_activations[name]).to(device))
 
 
 def load_text_files(file_dir):
@@ -58,18 +55,28 @@ def cache_data_txt(
 
 
 def cache_data(
-    dataset_name: str, out_dir: str, tokenizer_name: str = "EleutherAI/pythia-160m"
+    dataset_name: str = None,
+    out_dir: str = None,
+    tokenizer_name: str = "EleutherAI/pythia-160m",
+    data_files: str = None,
 ):
+    """
+    Cache and tokenize dataset.
+
+    Args:
+        dataset_name: Single dataset name/path (for backward compatibility)
+        out_dir: Output directory for cached data
+        tokenizer_name: Name of tokenizer to use
+        data_files: Comma-separated list of file paths (e.g., "file1.json,file2.json")
+    """
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     tokenizer.add_special_tokens({"pad_token": "<|padding|>"})
 
-    if "verbatim" in dataset_name:
-        dataset = load_dataset(
-            "text",
-            data_files=[
-                f"./data/categorized_lists_sce{i}_repeat.txt" for i in range(1, 6)
-            ],
-        )
+    # Handle the data_files parameter (multiple files)
+    if data_files is not None:
+        # Split comma-separated string into list
+        files_list = [f.strip() for f in data_files.split(",")]
+        dataset = load_dataset("json", data_files=files_list, split="train")
         dataset = dataset.map(
             lambda x: tokenizer(
                 x["text"],
@@ -77,46 +84,64 @@ def cache_data(
                 max_length=2048,
             ),
         ).remove_columns(["text"])
-    elif dataset_name == "blimp":
-        dataset = datasets.load_dataset("WillHeld/blimp", split="train")
-
-        def tokenize_examples(examples):
-            good = tokenizer(
-                examples["sentence_good"],
-                truncation=True,
-                max_length=128,
+    elif dataset_name is not None:
+        # Original logic for single dataset_name
+        if "verbatim" in dataset_name:
+            dataset = load_dataset(
+                "text",
+                data_files=[
+                    f"./data/categorized_lists_sce{i}_repeat.txt" for i in range(1, 6)
+                ],
             )
-            bad = tokenizer(
-                examples["sentence_bad"],
-                truncation=True,
-                max_length=128,
-            )
-            return {
-                "good_input_ids": good["input_ids"],
-                "good_attention_mask": good["attention_mask"],
-                "bad_input_ids": bad["input_ids"],
-                "bad_attention_mask": bad["attention_mask"],
-            }
+            dataset = dataset.map(
+                lambda x: tokenizer(
+                    x["text"],
+                    truncation=True,
+                    max_length=2048,
+                ),
+            ).remove_columns(["text"])
+        elif dataset_name == "blimp":
+            dataset = datasets.load_dataset("WillHeld/blimp", split="train")
 
-        cols = dataset.column_names
-        dataset = dataset.map(tokenize_examples, batched=True).remove_columns(cols)
-    elif dataset_name == "wikitext":
-        dataset = load_dataset(
-            "Salesforce/wikitext", name="wikitext-2-v1", split="train"
-        )
-        dataset = dataset.map(
-            lambda x: tokenizer(x["text"], truncation=True, max_length=2048),
-            batched=True,
-        )
+            def tokenize_examples(examples):
+                good = tokenizer(
+                    examples["sentence_good"],
+                    truncation=True,
+                    max_length=128,
+                )
+                bad = tokenizer(
+                    examples["sentence_bad"],
+                    truncation=True,
+                    max_length=128,
+                )
+                return {
+                    "good_input_ids": good["input_ids"],
+                    "good_attention_mask": good["attention_mask"],
+                    "bad_input_ids": bad["input_ids"],
+                    "bad_attention_mask": bad["attention_mask"],
+                }
+
+            cols = dataset.column_names
+            dataset = dataset.map(tokenize_examples, batched=True).remove_columns(cols)
+        elif dataset_name == "wikitext":
+            dataset = load_dataset(
+                "Salesforce/wikitext", name="wikitext-2-v1", split="train"
+            )
+            dataset = dataset.map(
+                lambda x: tokenizer(x["text"], truncation=True, max_length=2048),
+                batched=True,
+            )
+        else:
+            dataset = load_dataset("text", data_files=dataset_name, split="train")
+            dataset = dataset.map(
+                lambda x: tokenizer(
+                    x["text"],
+                    truncation=True,
+                    max_length=2048,
+                ),
+            ).remove_columns(["text"])
     else:
-        dataset = load_dataset("text", data_files=dataset_name, split="train")
-        dataset = dataset.map(
-            lambda x: tokenizer(
-                x["text"],
-                truncation=True,
-                max_length=2048,
-            ),
-        ).remove_columns(["text"])
+        raise ValueError("Either dataset_name or data_files must be provided")
 
     dataset.save_to_disk(out_dir)
 

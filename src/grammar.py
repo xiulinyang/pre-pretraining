@@ -1,7 +1,8 @@
-import fire
-import numpy as np
 import os
 import random
+
+import fire
+import numpy as np
 from tqdm import trange
 
 
@@ -154,7 +155,7 @@ def make_copy_str_file(
             f.write(f"{repeated_str}\n")
 
 
-def generate_shuff_dyck(k, max_length=2048, p_open=0.5, max_depth=16):
+def generate_shuff_dyck(k, max_length=2048, p_open=0.5, min_depth=1, max_depth=8):
     """
     Generate a k-shuffle Dyck sequence, truncated at max_length.
     When max depth is reached, close one bracket and continue.
@@ -163,6 +164,7 @@ def generate_shuff_dyck(k, max_length=2048, p_open=0.5, max_depth=16):
         k (int): Number of different types of brackets
         max_length (int): Target maximum length of the sequence
         p_open (float): Probability of opening a new bracket
+        min_depth (int): Minimum required depth of nested brackets
         max_depth (int): Maximum nesting depth allowed
 
     Returns:
@@ -174,6 +176,15 @@ def generate_shuff_dyck(k, max_length=2048, p_open=0.5, max_depth=16):
     """
     sequence = []
     counts = [0] * k  # Track open brackets of each type
+
+    if min_depth < 1:
+        raise ValueError("min_depth must be at least 1.")
+
+    # Initialize with minimum depth
+    for _ in range(min_depth):
+        bracket = random.randint(0, k - 1)
+        sequence.append(bracket)
+        counts[bracket] += 1
 
     while len(sequence) < max_length:
         depth = sum(counts)
@@ -209,7 +220,7 @@ def generate_shuff_dyck(k, max_length=2048, p_open=0.5, max_depth=16):
 
 
 def generate_shuff_dyck_txt_file(
-    file_dir, num_symbols=64, n=100000, target_length=2048, p=0.5
+    file_dir, num_symbols=64, n=100000, target_length=2048, p=0.51
 ):
     """Generates a text file containing Dyck sequences with cross-serial dependencies.
 

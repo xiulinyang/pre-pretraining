@@ -1,17 +1,16 @@
-from unsloth import is_bfloat16_supported
 from typing import List
 
-from transformers import (
-    AutoModelForCausalLM,
-    AutoConfig,
-    AutoTokenizer,
-    set_seed,
-    TrainerCallback,
-)
-from trl import SFTConfig, SFTTrainer
-import torch
 import datasets
 import fire
+import torch
+from transformers import (
+    AutoConfig,
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    TrainerCallback,
+    set_seed,
+)
+from trl import SFTConfig, SFTTrainer
 
 
 class SaveAtStepsCallback(TrainerCallback):
@@ -68,16 +67,16 @@ def main(
     model_name="EleutherAI/pythia-160m",
     reinit=False,
     max_seq_length=2048,
-    gradient_accumulation_steps=2,
-    max_steps=5000,
-    bsz=16,
+    gradient_accumulation_steps=1,
+    max_steps=10000,
+    bsz=32,
     warmup_steps=500,
-    logging_steps=1,
-    save_steps=125,
+    logging_steps=5,
+    save_steps=250,
     output_dir="output",
     seed=3407,
     report_to="wandb",
-    lr=5e-4,
+    lr=1e-3,
     min_lr_rate=0.1,
     override_packing=False,
     use_callback=False,
@@ -88,18 +87,18 @@ def main(
     if "pythia-1b" in model_name:
         c4_max = 11  # longer training --> more data
     else:
-        c4_max = 4
+        c4_max = 1
 
     callback = SaveAtStepsCallback(
         save_steps=list(range(0, 4000, 100)) + list(range(4000, 10000, 1000)),
         output_dir=output_dir,
     )
 
-    is_a100 = is_bfloat16_supported()
-
     if data_dir == "c4":
+        # if you happen to have C4 locally in json format
         dataset = load_c4_dataset(0, c4_max)
     else:
+        # otherwise, pretokenize
         dataset = datasets.load_from_disk(data_dir)
 
     if "train" in dataset:
@@ -109,13 +108,15 @@ def main(
         config = AutoConfig.from_pretrained(model_name)
         model = AutoModelForCausalLM.from_config(
             config,
-            torch_dtype=torch.bfloat16 if is_a100 else torch.float32,
+            torch_dtype=torch.bfloat16,
+            attn_implementation="flash_attention_2",
         )
     else:
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            torch_dtype=torch.bfloat16 if is_a100 else torch.float32,
+            torch_dtype=torch.bfloat16,
             trust_remote_code=True,
+            attn_implementation="flash_attention_2",
         )
     model.cuda()
 
@@ -139,15 +140,14 @@ def main(
         lr_scheduler_type="cosine_with_min_lr",
         lr_scheduler_kwargs={"min_lr_rate": min_lr_rate},
         packing=packing if not override_packing else False,
+        max_length=max_seq_length,
+        bf16=True,
     )
 
     trainer = SFTTrainer(
         model=model,
         args=training_args,
         train_dataset=dataset,
-        dataset_text_field="text",
-        tokenizer=tokenizer,
-        max_seq_length=max_seq_length,
     )
     if use_callback:
         trainer.add_callback(callback)

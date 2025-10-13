@@ -3,6 +3,8 @@ output
 wandb
 *.slurm
 *.out
+logs
+scratch.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
