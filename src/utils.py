@@ -36,7 +36,7 @@ def load_text_files(file_dir):
 
 
 def cache_data_txt(
-    file_dir: str, out_dir: str, tokenizer_name: str = "EleutherAI/pythia-160m"
+    file_dir: str, out_dir: str, tokenizer_name: str = "xiulinyang/gpt2_mini_baby_10Mf_32768_53"
 ):
     # load text files into huggingface dataset
     dataset = load_text_files(file_dir)
@@ -57,7 +57,7 @@ def cache_data_txt(
 def cache_data(
     dataset_name: str = None,
     out_dir: str = None,
-    tokenizer_name: str = "EleutherAI/pythia-160m",
+    tokenizer_name: str = "xiulinyang/gpt2_mini_baby_10Mf_32768_53",
     data_files: str = None,
 ):
     """
@@ -292,7 +292,7 @@ def make_dummy_tasks(data_dir, out_dir, length=2048):
     trigram_dataset.save_to_disk(os.path.join(out_dir, "trigram"))
 
 
-def make_random_tasks(out_dir, tokenizer_name="EleutherAI/pythia-160m"):
+def make_random_tasks(out_dir, tokenizer_name="xiulinyang/gpt2_mini_baby_10Mf_32768_53"):
     """
     Generates random binary strings and random integer strings of length 0-60.
     Tokenizes them and saves them as Hugging Face datasets.
