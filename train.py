@@ -64,7 +64,7 @@ def load_c4_dataset(start_file=0, end_file=10):
 
 def main(
     data_dir="./data/tokenized/depth9_train",
-    model_name="EleutherAI/pythia-160m",
+    model_name="xiulinyang/gpt2_small_baby_10M_32768_42f",
     reinit=False,
     max_seq_length=2048,
     gradient_accumulation_steps=1,
