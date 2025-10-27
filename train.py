@@ -65,6 +65,7 @@ def load_c4_dataset(start_file=0, end_file=10):
 def main(
     data_dir="./data/tokenized/depth9_train",
     model_name="xiulinyang/gpt2_small_baby_10M_32768_42f",
+    tokenizer_name = 'xiulinyang/gpt2_tiny_baby_10Mf_32768_42',
     reinit=False,
     max_seq_length=2048,
     gradient_accumulation_steps=1,
@@ -120,7 +121,7 @@ def main(
         )
     model.cuda()
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     tokenizer.add_special_tokens({"pad_token": "<|padding|>"})
 
     packing = "c4" in data_dir
