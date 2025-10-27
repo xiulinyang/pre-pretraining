@@ -225,7 +225,8 @@ def compute_stats(
         model = AutoModelForCausalLM.from_pretrained(model_dir).cuda().eval()
 
     tokenizer = AutoTokenizer.from_pretrained(model_dir)
-    tokenizer.add_special_tokens({"pad_token": "<|padding|>"})
+    tokenizer.pad_token = tokenizer.eos_token
+    #tokenizer.add_special_tokens({"pad_token": "<|padding|>"})
 
     def tokenize_examples(examples):
         return tokenizer(
@@ -404,7 +405,7 @@ def blimp_eval(
     if dataset is None:
         dataset = datasets.load_dataset("WillHeld/blimp")["train"]
     tokenizer = AutoTokenizer.from_pretrained(model_dir)
-    tokenizer.add_special_tokens({"pad_token": "<|padding|>"})
+    tokenizer.pad_token = tokenizer.eos_token
 
     if load_pruned_model:
         model = AutoModelForCausalLM.from_pretrained(model_dir).cuda().eval()
