@@ -224,8 +224,8 @@ def compute_stats(
     else:
         model = AutoModelForCausalLM.from_pretrained(model_dir).cuda().eval()
 
-    tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m")
-    tokenizer.add_special_tokens({"pad_token": "<|padding|>"})
+    tokenizer = AutoTokenizer.from_pretrained(model_dir)
+    # tokenizer.add_special_tokens({"pad_token": "<|padding|>"})
 
     def tokenize_examples(examples):
         return tokenizer(
@@ -403,11 +403,11 @@ def blimp_eval(
 
     if dataset is None:
         dataset = datasets.load_dataset("WillHeld/blimp")["train"]
-    tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m")
-    tokenizer.add_special_tokens({"pad_token": "<|padding|>"})
+    tokenizer = AutoTokenizer.from_pretrained(model_dir)
+    # tokenizer.add_special_tokens({"pad_token": "<|padding|>"})
 
     if load_pruned_model:
-        model = PPTNeoXForCausalLM.from_pretrained(model_dir).cuda().eval()
+        model = AutoModelForCausalLM.from_pretrained(model_dir).cuda().eval()
         log_alpha_heads = torch.tensor(
             np.load(log_alpha_path), dtype=torch.float32
         ).cuda()
